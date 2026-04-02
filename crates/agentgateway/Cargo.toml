@@ -39,6 +39,7 @@ azure_core.workspace = true
 azure_identity.workspace = true
 base64.workspace = true
 bytes.workspace = true
+c2pa-signing = { path = "../c2pa-signing" }
 cookie.workspace = true
 cel.workspace = true
 chrono.workspace = true
@@ -126,6 +127,7 @@ sse-stream.workspace = true
 thiserror.workspace = true
 tiktoken-rs.workspace = true
 tikv-jemallocator = { workspace = true, optional = true }
+tempfile.workspace = true
 tokio-rustls.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true

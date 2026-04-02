@@ -6,6 +6,7 @@ wiremock = { git = "https://github.com/howardjohn/wiremock-rs", rev = "e55f5b960
 [workspace]
 resolver = "2"
 members = [
+    "crates/c2pa-signing",
     "crates/agentgateway",
     "crates/agentgateway-app",
     "crates/cel-fork/cel",
@@ -18,6 +19,7 @@ members = [
     "crates/xtask",
 ]
 default-members = [
+    "crates/c2pa-signing",
     "crates/agentgateway",
     "crates/agentgateway-app",
     "crates/cel-fork/cel",

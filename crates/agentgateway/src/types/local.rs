@@ -1344,6 +1344,10 @@ pub struct FilterOrPolicy {
 	#[serde(default)]
 	csrf: Option<http::csrf::Csrf>,
 
+	/// Enable C2PA content-credential signing of images in LLM responses.
+	#[serde(default)]
+	c2pa_signing: Option<bool>,
+
 	// TrafficPolicy
 	/// Timeout requests that exceed the configured duration.
 	#[serde(default)]
@@ -2435,6 +2439,7 @@ pub(crate) async fn split_policies(
 		api_key,
 		transformations,
 		csrf,
+		c2pa_signing,
 		ext_authz,
 		ext_proc,
 		timeout,
@@ -2531,6 +2536,9 @@ pub(crate) async fn split_policies(
 	}
 	if let Some(p) = csrf {
 		route_policies.push(TrafficPolicy::Csrf(p))
+	}
+	if let Some(enabled) = c2pa_signing {
+		route_policies.push(TrafficPolicy::C2paSigning(enabled))
 	}
 	if let Some(p) = authorization {
 		route_policies.push(TrafficPolicy::Authorization(p))

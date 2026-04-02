@@ -1,0 +1,39 @@
+{
+  "claim_generator": "Atlassian_Rovo/1.2.0",
+  "assertions": [
+    {
+      "label": "stdat.declaration",
+      "data": {
+        "declaration": "This image was generated using Atlassian Rovo's generative AI capabilities."
+      }
+    },
+    {
+      "label": "c2pa.actions",
+      "data": {
+        "actions": [
+          {
+            "action": "c2pa.created",
+            "softwareAgent": "Atlassian Rovo Image Generator",
+            "when": "2026-01-30T12:42:21Z"
+          }
+        ]
+      }
+    },
+    {
+      "label": "stds.schema-org.CreativeWork",
+      "data": {
+        "@context": "https://schema.org",
+        "@type": "CreativeWork",
+        "author": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Atlassian Rovo",
+            "url": "https://www.atlassian.com/software/rovo"
+          }
+        ],
+        "name": "Team Workflow Diagram",
+        "description": "AI-generated visualization created via Rovo in Confluence."
+      }
+    }
+  ]
+}

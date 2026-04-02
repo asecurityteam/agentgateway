@@ -28,6 +28,7 @@ use crate::*;
 pub mod anthropic;
 pub mod azureopenai;
 pub mod bedrock;
+pub mod c2pa;
 pub mod gemini;
 pub mod openai;
 pub mod vertex;
@@ -961,7 +962,21 @@ impl AIProvider {
 
 			let llm_resp = resp.to_llm_response(include_completion_in_log);
 			let body = resp.serialize().map_err(AIError::ResponseParsing)?;
-			(llm_resp, Bytes::copy_from_slice(&body))
+			let body = Bytes::copy_from_slice(&body);
+
+			// ── C2PA image stamping ──────────────────────────────────────────
+			// Transparently sign any base64-encoded images in the response body.
+			// Only runs when explicitly enabled via a `c2pa_signing: true` policy.
+			// If no images are present, or signing fails, the original body is
+			// returned unchanged with zero latency penalty.
+			let body = if rate_limit.c2pa_signing {
+				c2pa::stamp_images_in_response_body(body).await
+			} else {
+				body
+			};
+			// ────────────────────────────────────────────────────────────────
+
+			(llm_resp, body)
 		};
 
 		let body = if let Some(encoding) = encoding {
@@ -1124,6 +1139,7 @@ impl AIProvider {
 		include_completion_in_log: bool,
 		resp: Response,
 	) -> Result<Response, AIError> {
+		let c2pa_signing = rate_limit.c2pa_signing;
 		let is_vertex_anthropic = match self {
 			AIProvider::Vertex(p) => p.is_anthropic_model(Some(&req.request_model)),
 			_ => false,
@@ -1152,7 +1168,7 @@ impl AIProvider {
 		}
 		let resp = Response::from_parts(parts, body);
 
-		Ok(match (self, input_format) {
+		let resp = match (self, input_format) {
 			// Completions with OpenAI: just passthrough
 			(
 				AIProvider::OpenAI(_) | AIProvider::Gemini(_) | AIProvider::AzureOpenAI(_),
@@ -1276,7 +1292,16 @@ impl AIProvider {
 			(_, InputFormat::Embeddings) => {
 				unreachable!("Embeddings should be handled by process_embeddings_response")
 			},
-		})
+		};
+
+		// ── C2PA image stamping (streaming path) ─────────────────────────
+		// Wrap the streaming body to sign images in SSE events on-the-fly.
+		// Only active when the `c2pa_signing` policy is enabled on this route.
+		if c2pa_signing {
+			Ok(resp.map(c2pa::wrap_streaming_body))
+		} else {
+			Ok(resp)
+		}
 	}
 
 	async fn read_body_and_default_model<T: RequestType + DeserializeOwned>(

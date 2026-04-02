@@ -2053,6 +2053,8 @@ pub enum TrafficPolicy {
 	DirectResponse(filters::DirectResponse),
 	#[serde(rename = "cors")]
 	CORS(http::cors::Cors),
+	/// Enable C2PA content-credential signing of images in LLM responses.
+	C2paSigning(bool),
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

@@ -250,6 +250,7 @@ pub struct RoutePolicies {
 	pub request_mirror: Vec<filters::RequestMirror>,
 	pub direct_response: Option<filters::DirectResponse>,
 	pub cors: Option<http::cors::Cors>,
+	pub c2pa_signing: bool,
 }
 
 #[derive(Debug, Default)]
@@ -324,6 +325,7 @@ impl From<RoutePolicies> for LLMRequestPolicies {
 				.cloned()
 				.collect(),
 			llm: value.llm.clone(),
+			c2pa_signing: value.c2pa_signing,
 		}
 	}
 }
@@ -333,6 +335,7 @@ pub struct LLMRequestPolicies {
 	pub local_rate_limit: Vec<http::localratelimit::RateLimit>,
 	pub remote_rate_limit: Option<http::remoteratelimit::RemoteRateLimit>,
 	pub llm: Option<Arc<llm::Policy>>,
+	pub c2pa_signing: bool,
 }
 
 impl LLMRequestPolicies {
@@ -384,6 +387,7 @@ pub struct LLMResponsePolicies {
 	pub local_rate_limit: Vec<http::localratelimit::RateLimit>,
 	pub remote_rate_limit: Option<http::remoteratelimit::LLMResponseAmend>,
 	pub prompt_guard: Vec<ResponseGuard>,
+	pub c2pa_signing: bool,
 }
 
 impl Default for Store {
@@ -581,6 +585,9 @@ impl Store {
 				},
 				TrafficPolicy::CORS(p) => {
 					pol.cors.get_or_insert_with(|| p.clone());
+				},
+				TrafficPolicy::C2paSigning(enabled) => {
+					pol.c2pa_signing = *enabled;
 				},
 			}
 		}

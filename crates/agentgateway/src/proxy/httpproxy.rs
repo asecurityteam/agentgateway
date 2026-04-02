@@ -332,6 +332,7 @@ async fn apply_llm_request_policies(
 			.and_then(|llm| llm.prompt_guard.as_ref())
 			.map(|g| g.response.clone())
 			.unwrap_or_default(),
+		c2pa_signing: policies.c2pa_signing,
 	})
 }
 
