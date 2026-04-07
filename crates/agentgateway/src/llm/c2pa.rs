@@ -41,16 +41,23 @@ pub async fn stamp_images_in_response_body(body: Bytes) -> Bytes {
 }
 
 async fn try_stamp_images_in_body(body: Bytes) -> anyhow::Result<Bytes> {
+	let original_size = body.len();
 	let mut root: Value = serde_json::from_slice(&body)?;
 	let count = stamp_images_in_value(&mut root).await?;
 	if count == 0 {
+		debug!(
+			body_bytes = original_size,
+			"c2pa: no images found in response body (or all images were already signed)"
+		);
 		return Ok(body);
 	}
+	let new_body = serde_json::to_vec(&root)?;
 	debug!(
 		images_stamped = count,
+		original_body_bytes = original_size,
+		stamped_body_bytes = new_body.len(),
 		"c2pa: stamped {count} image(s) in response"
 	);
-	let new_body = serde_json::to_vec(&root)?;
 	Ok(Bytes::from(new_body))
 }
 
@@ -343,7 +350,14 @@ fn try_stamp_data_uri_str_sync(data_uri: &str) -> Option<String> {
 /// Write raw image bytes to a temp file, sign via `c2pa_signing::sign_image`,
 /// read back the signed bytes.
 fn sign_raw_image(image_bytes: &[u8], ext: &str) -> Option<Vec<u8>> {
+	let input_size = image_bytes.len();
 	let suffix = format!(".{ext}");
+
+	debug!(
+		format = ext,
+		input_bytes = input_size,
+		"c2pa: attempting to sign image"
+	);
 
 	let input_tmp = TempBuilder::new()
 		.prefix("agw-c2pa-in-")
@@ -367,9 +381,19 @@ fn sign_raw_image(image_bytes: &[u8], ext: &str) -> Option<Vec<u8>> {
 
 	use c2pa_signing::{SignOutcome, sign_image};
 	match sign_image(input_tmp.path(), &output_path) {
-		Ok(SignOutcome::Signed) => {},
+		Ok(SignOutcome::Signed) => {
+			debug!(
+				format = ext,
+				input_bytes = input_size,
+				"c2pa: image signed successfully"
+			);
+		},
 		Ok(SignOutcome::NoChange) => {
-			debug!("c2pa: image already signed; no change");
+			debug!(
+				format = ext,
+				input_bytes = input_size,
+				"c2pa: image already has a C2PA manifest, returning original unchanged"
+			);
 			return None;
 		},
 		Err(e) => {
@@ -378,9 +402,19 @@ fn sign_raw_image(image_bytes: &[u8], ext: &str) -> Option<Vec<u8>> {
 		},
 	}
 
-	std::fs::read(&output_path)
+	let signed_bytes = std::fs::read(&output_path)
 		.map_err(|e| warn!(error = %e, "c2pa: failed to read signed output file"))
-		.ok()
+		.ok()?;
+
+	debug!(
+		format = ext,
+		input_bytes = input_size,
+		output_bytes = signed_bytes.len(),
+		added_bytes = signed_bytes.len() - input_size,
+		"c2pa: signing complete"
+	);
+
+	Some(signed_bytes)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

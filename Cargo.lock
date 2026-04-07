@@ -1533,9 +1533,8 @@ dependencies = [
  "anyhow",
  "c2pa",
  "chrono",
- "serde",
  "serde_json",
- "tempfile",
+ "tracing",
 ]
 
 [[package]]

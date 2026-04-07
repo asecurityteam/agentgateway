@@ -3,6 +3,7 @@ use std::sync::{Mutex, OnceLock};
 
 use anyhow::{anyhow, Context, Result};
 use c2pa::{create_signer, Builder, Reader, SigningAlg};
+use tracing::{debug, info};
 
 // ── Core signing library ───────────────────────────────────────────────────────
 
@@ -89,10 +90,18 @@ impl SignerContext {
 	pub fn sign(&self, input_path: &Path, output_path: &Path) -> Result<SignOutcome> {
 		// Check if the image already has a C2PA manifest
 		if let Ok(reader) = Reader::from_file(input_path) {
-			if reader.active_manifest().is_some() {
+			if let Some(manifest) = reader.active_manifest() {
+				let claim_generator = manifest
+					.claim_generator()
+					.unwrap_or("unknown");
+				info!(
+					existing_claim_generator = claim_generator,
+					"c2pa: image already has an active C2PA manifest, skipping re-sign"
+				);
 				return Ok(SignOutcome::NoChange);
 			}
 		}
+		debug!("c2pa: no existing manifest found, proceeding to sign");
 
 		let manifest_json = self.build_manifest_json()?;
 
